@@ -1,0 +1,36 @@
+name: Build NEKODRIVE VST3 (Windows)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-vst3:
+    runs-on: windows-2022
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Configure with CMake
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build VST3
+        run: cmake --build build --config Release --target NEKODRIVE_VST3
+
+      - name: Package VST3 bundle
+        shell: pwsh
+        run: |
+          $plugin = "build/NEKODRIVE_artefacts/Release/VST3/NEKODRIVE.vst3"
+          if (!(Test-Path $plugin)) {
+            Write-Error "VST3 bundle not found at $plugin"
+          }
+          Compress-Archive -Path $plugin -DestinationPath "NEKODRIVE-Windows-x64-VST3.zip" -Force
+
+      - name: Upload installable VST3 ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: NEKODRIVE-Windows-x64-VST3
+          path: NEKODRIVE-Windows-x64-VST3.zip
+          if-no-files-found: error
+          retention-days: 30
